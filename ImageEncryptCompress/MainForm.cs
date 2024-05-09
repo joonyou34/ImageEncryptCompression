@@ -19,7 +19,7 @@ namespace ImageEncryptCompress
         }
 
         RGBPixel[,] ImageMatrix;
-        BitArray seed = new BitArray(64);
+        BitArray hashSeed = new BitArray(32);
 
         private void btnOpen_Click(object sender, EventArgs e)
         {
@@ -47,7 +47,6 @@ namespace ImageEncryptCompress
         {
             const Int64 mod = (int)1e9 + 7;
             Int64 hash_1 = 0, p1 = 1, base_1 = 271;
-            Int64 hash_2 = 0, p2 = 1, base_2 = 277;
 
             string inputString = binaryString.Text;
 
@@ -55,16 +54,13 @@ namespace ImageEncryptCompress
             {
                 hash_1 = (hash_1 + (inputString[i] * p1) % mod) % mod;
                 p1 = (p1 * base_1) % mod;
-
-                hash_2 = (hash_2 + (inputString[i] * p2) % mod) % mod;
-                p2 = (p2 * base_2) % mod;
             }
 
             for (int i = 0; i < 32; i++)
             {
-                seed[i] = ((hash_1 >> i) % 2 != 0);
-                seed[i + 32] = ((hash_2 >> i) % 2 != 0);
+                hashSeed[i] = ((hash_1 >> i) % 2 != 0);
             }
+
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -89,16 +85,31 @@ namespace ImageEncryptCompress
 
         private void button1_Click_1(object sender, EventArgs e)
         {
-            //string binString = binaryString.Text;
-            //BitArray seed = new BitArray(binString.Length);
-            //for(int i = 0; i < binString.Length; i++)
-            //{
-            //    seed[i] = (binString[i] == '1' ? true : false);
-            //}
+
             int tap = ((int)tapAmount.Value);
-            convertToBinary();
-            ImageMatrix = ImageOperations.EncryptImage(ImageMatrix, 64, seed, tap);
+
+            string binString = binaryString.Text;
+            bool isBinary = true;
+
+            BitArray binSeed = new BitArray(binString.Length);
+
+            for (int i = 0; i < binString.Length; i++)
+            {
+                binSeed[i] = (binString[i] == '1' ? true : false);
+                isBinary &= (binString[i] == '1' || binString[i] == '0');
+            }
+            if (isBinary)
+            {
+                ImageMatrix = ImageOperations.EncryptImage(ImageMatrix, binSeed.Length, binSeed, tap);
+            }
+            else
+            {
+                convertToBinary();
+                ImageMatrix = ImageOperations.EncryptImage(ImageMatrix, 32, hashSeed, tap);
+            }
+
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
+
         }
     }
 }
