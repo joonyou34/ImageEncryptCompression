@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Drawing.Imaging;
 using System.Collections;
+using static System.Net.Mime.MediaTypeNames;
 ///Algorithms Project
 ///Intelligent Scissors
 ///
@@ -21,6 +22,17 @@ namespace ImageEncryptCompress
     public struct RGBPixelD
     {
         public double red, green, blue;
+    }
+
+    public struct SeedTap
+    {
+        public BitArray seed;
+        public int tapValue;
+        public SeedTap(BitArray s , int tp)
+        {
+            seed = new BitArray(s);
+            tapValue = tp;
+        }
     }
     
   
@@ -88,6 +100,93 @@ namespace ImageEncryptCompress
             }
             return image;
         }
+
+        public static int ImageColorAvg(RGBPixel[,] image)
+        {
+            int h = GetHeight(image);
+            int w = GetWidth(image);
+            int sth = (int)(0.15 * h);
+            int stw = (int)(0.15 * w);
+            h -= sth;
+            w -= stw;
+            int sum = 0;
+            for(int i = sth; i < h; i++)
+            {
+                for(int j = stw; j < w; j++)
+                {
+                    sum += image[i, j].red + image[i, j].green + image[i, j].blue;
+                }
+            }
+            return sum / (h * w * 3);
+        }
+
+        public static void CloneImage(RGBPixel[,] src, RGBPixel[,] trg)
+        {
+            int h = GetHeight(src);
+            int w = GetWidth(src);
+            for (int i = 0; i < h; i++)
+            {
+                for (int j = 0; j < w; j++)
+                    trg[i, j] = src[i, j];
+            }
+        }
+
+
+
+        public static int BruteColorAvg(RGBPixel[,] image, BitArray seed, int n, int tap)
+        {
+            int h = GetHeight(image);
+            int w = GetWidth(image);
+
+            RGBPixel[,] temp = new RGBPixel[h,w];
+            CloneImage(image, temp);
+
+            temp = EncryptImage(temp, n, seed, tap);
+            return ImageColorAvg(temp);
+        }
+
+        public static void BruteHelper(RGBPixel[,] image, int idx, BitArray seed, int n, ref SeedTap bestSeedTap, ref int currBest)
+        {
+            if(idx == n)
+            {
+                for(int tap = 0; tap < n; tap++)
+                {
+                    int avgDiff = Math.Abs(BruteColorAvg(image, seed, n, tap) - 128);
+                    if(avgDiff > currBest)
+                    {
+                        currBest = avgDiff;
+                        bestSeedTap = new SeedTap(seed, tap);
+                    }
+                }
+                return;
+            }
+
+            seed[idx] = true;
+            BruteHelper(image, idx + 1, seed, n, ref bestSeedTap, ref currBest);
+            seed[idx] = false;
+
+            BruteHelper(image, idx + 1, seed, n , ref bestSeedTap , ref currBest);
+        }
+
+        public static SeedTap BruteGetSeedTap(RGBPixel[,] image, int n)
+        {
+            BitArray seed = new BitArray(n);
+            
+            int curBest = 0;
+            SeedTap curSeedTap = new SeedTap();
+
+            BruteHelper(image, 0, seed, n, ref curSeedTap, ref curBest);
+            return curSeedTap;
+        }
+
+        public static SeedTap BruteDecrypt(RGBPixel[,] image, int n)
+        {
+            SeedTap seedTap = BruteGetSeedTap(image, n);
+            image = EncryptImage(image, n, seedTap.seed, seedTap.tapValue);
+            return seedTap;
+        }
+
+
 
 
         /// <summary>

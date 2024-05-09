@@ -35,13 +35,13 @@ namespace ImageEncryptCompress
             txtHeight.Text = ImageOperations.GetHeight(ImageMatrix).ToString();
         }
 
-        private void btnGaussSmooth_Click(object sender, EventArgs e)
-        {
-            double sigma = double.Parse(txtGaussSigma.Text);
-            int maskSize = (int)nudMaskSize.Value ;
-            ImageMatrix = ImageOperations.GaussianFilter1D(ImageMatrix, maskSize, sigma);
-            ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
-        }
+        //private void btnGaussSmooth_Click(object sender, EventArgs e)
+        //{
+        //    double sigma = double.Parse(txtGaussSigma.Text);
+        //    int maskSize = (int)nudMaskSize.Value ;
+        //    ImageMatrix = ImageOperations.GaussianFilter1D(ImageMatrix, maskSize, sigma);
+        //    ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
+        //}
 
         private void convertToBinary()
         {
@@ -110,6 +110,12 @@ namespace ImageEncryptCompress
 
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
 
+        }
+
+        private void button1_Click_2(object sender, EventArgs e)
+        {
+            ImageOperations.BruteDecrypt(ImageMatrix, (int)SeedSize.Value);
+            ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
         }
     }
 }
