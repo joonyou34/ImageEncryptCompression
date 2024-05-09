@@ -269,11 +269,6 @@ namespace ImageEncryptCompress
             0,
             0,
             0});
-            this.tapAmount.Minimum = new decimal(new int[] {
-            3,
-            0,
-            0,
-            0});
             this.tapAmount.Name = "tapAmount";
             this.tapAmount.Size = new System.Drawing.Size(76, 27);
             this.tapAmount.TabIndex = 19;

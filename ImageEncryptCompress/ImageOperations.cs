@@ -42,7 +42,7 @@ namespace ImageEncryptCompress
             for(byte i = 0; i < 8; i++)
             {
                 bool value = seed[n - 1] ^ seed[tapPosition];
-                ret |= Convert.ToByte(Convert.ToByte(value) << i);
+                ret |= Convert.ToByte(Convert.ToByte(value) << (7-i));
                 for (int j = n - 1; j > 0; j--)
                     seed[j] = seed[j - 1];
                 seed[0] = value;
