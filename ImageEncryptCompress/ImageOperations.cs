@@ -6,6 +6,8 @@ using System.Windows.Forms;
 using System.Drawing.Imaging;
 using System.Collections;
 using static System.Net.Mime.MediaTypeNames;
+using System.Collections.Specialized;
+using System.Runtime.CompilerServices;
 ///Algorithms Project
 ///Intelligent Scissors
 ///
@@ -18,6 +20,18 @@ namespace ImageEncryptCompress
     public struct RGBPixel
     {
         public byte red, green, blue;
+        public RGBPixel(byte r, byte g, byte b)
+        {
+            red = r;
+            green = g;
+            blue = b;
+        }
+        public RGBPixel(RGBPixel pixel)
+        {
+            red = pixel.red;
+            green = pixel.green;
+            blue = pixel.blue;
+        }
     }
     public struct RGBPixelD
     {
@@ -26,13 +40,8 @@ namespace ImageEncryptCompress
 
     public struct SeedTap
     {
-        public BitArray seed;
+        public int seed;
         public int tapValue;
-        public SeedTap(BitArray s , int tp)
-        {
-            seed = new BitArray(s);
-            tapValue = tp;
-        }
     }
     
   
@@ -41,6 +50,13 @@ namespace ImageEncryptCompress
     /// </summary>
     public class ImageOperations
     {
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool BitValue(int n, int idx)
+        {
+            return Convert.ToBoolean(n & (1<<idx));
+        }
+
         /// <summary>
         /// generates an 8-bit pseudorandom number given a binary number as a seed and a tap position
         /// </summary>
@@ -63,6 +79,20 @@ namespace ImageEncryptCompress
             return ret;
         }
 
+        public static byte LSFR(int n, ref int seed, int tapPosition)
+        {
+            byte ret = 0;
+            for (byte i = 0; i < 8; i++)
+            {
+                bool value = BitValue(seed, n-1) ^ BitValue(seed, tapPosition);
+                ret |= Convert.ToByte(Convert.ToByte(value) << (7 - i));
+                seed <<= 1;
+                seed |= Convert.ToInt32(value);
+            }
+
+            return ret;
+        }
+
         /// <summary>
         /// encrypts a given pixel using LFSR
         /// </summary>
@@ -71,12 +101,20 @@ namespace ImageEncryptCompress
         /// <param name="seed">a bitarray representing the seed</param>
         /// <param name="tapPosition">the tap position to be selceted from the seed</param>
         /// <returns>the encrypted pixel</returns>
-        public static RGBPixel EncryptPixel(RGBPixel pixel, int seedSize, BitArray seed, int tapPosition)
+        public static void EncryptPixel(ref RGBPixel pixel, int seedSize, BitArray seed, int tapPosition)
         {
             pixel.red ^= LSFR(seedSize, seed, tapPosition);
             pixel.green ^= LSFR(seedSize, seed, tapPosition);
             pixel.blue ^= LSFR(seedSize, seed, tapPosition);
-            return pixel;
+            return;
+        }
+
+        public static void EncryptPixel(ref RGBPixel pixel, int seedSize, ref int seed, int tapPosition)
+        {
+            pixel.red ^= LSFR(seedSize, ref seed, tapPosition);
+            pixel.green ^= LSFR(seedSize, ref seed, tapPosition);
+            pixel.blue ^= LSFR(seedSize, ref seed, tapPosition);
+            return;
         }
 
         /// <summary>
@@ -87,7 +125,7 @@ namespace ImageEncryptCompress
         /// <param name="seed">a bitarray representing the seed</param>
         /// <param name="tapPosition">the tap position to be selceted from the seed</param>
         /// <returns>the encrypted image</returns>
-        public static RGBPixel[,] EncryptImage(RGBPixel[,] image, int seedSize, BitArray seed, int tapPosition)
+        public static void EncryptImage(ref RGBPixel[,] image, int seedSize, BitArray seed, int tapPosition)
         {
             int h = GetHeight(image);
             int w = GetWidth(image);
@@ -95,32 +133,43 @@ namespace ImageEncryptCompress
             {
                 for(int j = 0; j < w; j++)
                 {
-                    image[i, j] = EncryptPixel(image[i, j], seedSize, seed, tapPosition);
+                    EncryptPixel(ref image[i, j], seedSize, seed, tapPosition);
                 }
             }
-            return image;
         }
 
-        public static int ImageColorAvg(RGBPixel[,] image)
+        public static void EncryptImage(ref RGBPixel[,] image, int seedSize, int seed, int tapPosition)
         {
             int h = GetHeight(image);
             int w = GetWidth(image);
-            int sth = (int)(0.15 * h);
-            int stw = (int)(0.15 * w);
-            h -= sth;
-            w -= stw;
-            int sum = 0;
-            for(int i = sth; i < h; i++)
+            for (int i = 0; i < h; i++)
             {
-                for(int j = stw; j < w; j++)
+                for (int j = 0; j < w; j++)
                 {
-                    sum += image[i, j].red + image[i, j].green + image[i, j].blue;
+                    EncryptPixel(ref image[i, j], seedSize, ref seed, tapPosition);
                 }
             }
-            return sum / (h * w * 3);
         }
 
-        public static void CloneImage(RGBPixel[,] src, RGBPixel[,] trg)
+        public static float BruteColorAvg(ref RGBPixel[,] image, int seed, int n, int tap)
+        {
+            int h = GetHeight(image);
+            int w = GetWidth(image);
+
+            int sum = 0;
+            for(int i = 0; i < h; i++)
+            {
+                for(int j = 0; j < w; j++)
+                {
+                    RGBPixel evilDot = new RGBPixel(image[i, j]);
+                    EncryptPixel(ref evilDot, n, ref seed, tap);
+                    sum += evilDot.red + evilDot.green + evilDot.blue;
+                }
+            }
+            return sum / (float)(h*w*3);
+        }
+
+        public static void CloneImage(ref RGBPixel[,] src, ref RGBPixel[,] trg)
         {
             int h = GetHeight(src);
             int w = GetWidth(src);
@@ -131,58 +180,39 @@ namespace ImageEncryptCompress
             }
         }
 
-
-
-        public static int BruteColorAvg(RGBPixel[,] image, BitArray seed, int n, int tap)
+        public static void BruteHelper(ref RGBPixel[,] image, int n, ref SeedTap bestSeedTap, ref float currBest)
         {
-            int h = GetHeight(image);
-            int w = GetWidth(image);
-
-            RGBPixel[,] temp = new RGBPixel[h,w];
-            CloneImage(image, temp);
-
-            temp = EncryptImage(temp, n, seed, tap);
-            return ImageColorAvg(temp);
-        }
-
-        public static void BruteHelper(RGBPixel[,] image, int idx, BitArray seed, int n, ref SeedTap bestSeedTap, ref int currBest)
-        {
-            if(idx == n)
+            int end = 1 << n;
+            for(int mask = 1; mask < end; mask++)
             {
-                for(int tap = 0; tap < n; tap++)
+                
+                for (int tap = 0; tap < n-1; tap++)
                 {
-                    int avgDiff = Math.Abs(BruteColorAvg(image, seed, n, tap) - 128);
+                    float avgDiff = Math.Abs(BruteColorAvg(ref image, mask, n, tap) - 128);
                     if(avgDiff > currBest)
                     {
                         currBest = avgDiff;
-                        bestSeedTap = new SeedTap(seed, tap);
+                        bestSeedTap.seed = mask;
+                        bestSeedTap.tapValue = tap;
                     }
                 }
-                return;
             }
 
-            seed[idx] = true;
-            BruteHelper(image, idx + 1, seed, n, ref bestSeedTap, ref currBest);
-            seed[idx] = false;
-
-            BruteHelper(image, idx + 1, seed, n , ref bestSeedTap , ref currBest);
         }
 
         public static SeedTap BruteGetSeedTap(RGBPixel[,] image, int n)
         {
-            BitArray seed = new BitArray(n);
-            
-            int curBest = 0;
+            float curBest = 0;
             SeedTap curSeedTap = new SeedTap();
 
-            BruteHelper(image, 0, seed, n, ref curSeedTap, ref curBest);
+            BruteHelper(ref image, n, ref curSeedTap, ref curBest);
             return curSeedTap;
         }
 
         public static SeedTap BruteDecrypt(RGBPixel[,] image, int n)
         {
             SeedTap seedTap = BruteGetSeedTap(image, n);
-            image = EncryptImage(image, n, seedTap.seed, seedTap.tapValue);
+            EncryptImage(ref image, n, seedTap.seed, seedTap.tapValue);
             return seedTap;
         }
 

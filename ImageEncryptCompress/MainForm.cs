@@ -95,17 +95,17 @@ namespace ImageEncryptCompress
 
             for (int i = 0; i < binString.Length; i++)
             {
-                binSeed[i] = (binString[i] == '1' ? true : false);
+                binSeed[binString.Length-i-1] = (binString[i] == '1' ? true : false);
                 isBinary &= (binString[i] == '1' || binString[i] == '0');
             }
             if (isBinary)
             {
-                ImageMatrix = ImageOperations.EncryptImage(ImageMatrix, binSeed.Length, binSeed, tap);
+                ImageOperations.EncryptImage(ref ImageMatrix, binSeed.Length, binSeed, tap);
             }
             else
             {
                 convertToBinary();
-                ImageMatrix = ImageOperations.EncryptImage(ImageMatrix, 32, hashSeed, tap);
+                ImageOperations.EncryptImage(ref ImageMatrix, 32, hashSeed, tap);
             }
 
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
