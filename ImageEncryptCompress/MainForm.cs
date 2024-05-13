@@ -19,6 +19,7 @@ namespace ImageEncryptCompress
         }
 
         RGBPixel[,] ImageMatrix;
+        CompressedImage compressedImageMatrix;
         BitArray hashSeed = new BitArray(32);
 
         private void btnOpen_Click(object sender, EventArgs e)
@@ -115,6 +116,17 @@ namespace ImageEncryptCompress
         private void button1_Click_2(object sender, EventArgs e)
         {
             ImageOperations.BruteDecrypt(ImageMatrix, (int)SeedSize.Value);
+            ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
+        }
+
+        private void button1_Click_3(object sender, EventArgs e)
+        {
+            compressedImageMatrix = ImageCompression.CompressImage(ImageMatrix);
+        }
+
+        private void DecompressButton_Click(object sender, EventArgs e)
+        {
+            ImageMatrix = ImageCompression.DecompressImage(ref compressedImageMatrix);
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
         }
     }

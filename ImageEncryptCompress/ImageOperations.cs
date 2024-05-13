@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 
 namespace ImageEncryptCompress
 {
+
     /// <summary>
     /// Holds the pixel color in 3 byte values: red, green and blue
     /// </summary>
@@ -33,6 +34,48 @@ namespace ImageEncryptCompress
             blue = pixel.blue;
         }
     }
+
+    public struct CompressedPixel
+    {
+        public BitArray color;
+
+        public CompressedPixel(int bits)
+        {
+            color = new BitArray(bits);
+        }
+
+        public CompressedPixel(BitArray initialColor)
+        {
+            color = new BitArray(initialColor);
+        }
+    }
+
+    public struct CompressedImage
+    {
+        public HuffmanTree redTree;
+        public HuffmanTree greenTree;
+        public HuffmanTree blueTree;
+
+        public CompressedPixel[,] image;
+
+        public CompressedImage(int l, int w, HuffmanTree r, HuffmanTree g, HuffmanTree b)
+        {
+            redTree = r;
+            greenTree = g;
+            blueTree = b;
+            image = new CompressedPixel[l, w];
+        }
+
+        public int getLen()
+        {
+            return image.GetLength(0);
+        }
+
+        public int getWidth()
+        {
+            return image.GetLength(1);
+        }
+    }
     public struct RGBPixelD
     {
         public double red, green, blue;
@@ -43,7 +86,6 @@ namespace ImageEncryptCompress
         public int seed;
         public int tapValue;
     }
-    
   
     /// <summary>
     /// Library of static functions that deal with images

@@ -44,6 +44,8 @@ namespace ImageEncryptCompress
             this.encryptButton = new System.Windows.Forms.Button();
             this.BruteDecryptButton = new System.Windows.Forms.Button();
             this.SeedSize = new System.Windows.Forms.NumericUpDown();
+            this.compress_button = new System.Windows.Forms.Button();
+            this.DecompressButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.panel1.SuspendLayout();
@@ -218,7 +220,7 @@ namespace ImageEncryptCompress
             // BruteDecryptButton
             // 
             this.BruteDecryptButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.BruteDecryptButton.Location = new System.Drawing.Point(398, 529);
+            this.BruteDecryptButton.Location = new System.Drawing.Point(349, 530);
             this.BruteDecryptButton.Margin = new System.Windows.Forms.Padding(4);
             this.BruteDecryptButton.Name = "BruteDecryptButton";
             this.BruteDecryptButton.Size = new System.Drawing.Size(100, 66);
@@ -230,7 +232,7 @@ namespace ImageEncryptCompress
             // SeedSize
             // 
             this.SeedSize.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.SeedSize.Location = new System.Drawing.Point(523, 544);
+            this.SeedSize.Location = new System.Drawing.Point(474, 545);
             this.SeedSize.Margin = new System.Windows.Forms.Padding(4);
             this.SeedSize.Maximum = new decimal(new int[] {
             99,
@@ -246,11 +248,37 @@ namespace ImageEncryptCompress
             0,
             0});
             // 
+            // compress_button
+            // 
+            this.compress_button.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.compress_button.Location = new System.Drawing.Point(603, 488);
+            this.compress_button.Margin = new System.Windows.Forms.Padding(4);
+            this.compress_button.Name = "compress_button";
+            this.compress_button.Size = new System.Drawing.Size(122, 38);
+            this.compress_button.TabIndex = 23;
+            this.compress_button.Text = "Compress";
+            this.compress_button.UseVisualStyleBackColor = true;
+            this.compress_button.Click += new System.EventHandler(this.button1_Click_3);
+            // 
+            // DecompressButton
+            // 
+            this.DecompressButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.DecompressButton.Location = new System.Drawing.Point(603, 557);
+            this.DecompressButton.Margin = new System.Windows.Forms.Padding(4);
+            this.DecompressButton.Name = "DecompressButton";
+            this.DecompressButton.Size = new System.Drawing.Size(144, 38);
+            this.DecompressButton.TabIndex = 24;
+            this.DecompressButton.Text = "Decompress";
+            this.DecompressButton.UseVisualStyleBackColor = true;
+            this.DecompressButton.Click += new System.EventHandler(this.DecompressButton_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1205, 615);
+            this.Controls.Add(this.DecompressButton);
+            this.Controls.Add(this.compress_button);
             this.Controls.Add(this.SeedSize);
             this.Controls.Add(this.BruteDecryptButton);
             this.Controls.Add(this.encryptButton);
@@ -299,6 +327,8 @@ namespace ImageEncryptCompress
         private System.Windows.Forms.Button encryptButton;
         private System.Windows.Forms.Button BruteDecryptButton;
         private System.Windows.Forms.NumericUpDown SeedSize;
+        private System.Windows.Forms.Button compress_button;
+        private System.Windows.Forms.Button DecompressButton;
     }
 }
 
