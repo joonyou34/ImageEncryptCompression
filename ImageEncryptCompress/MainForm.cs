@@ -129,8 +129,13 @@ namespace ImageEncryptCompress
 
         private void button1_Click_2(object sender, EventArgs e)
         {
-            ImageOperations.BruteDecrypt(ImageMatrix, (int)SeedSize.Value);
+            SeedTap best = ImageOperations.BruteDecrypt(ImageMatrix, (int)SeedSize.Value);
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
+
+            for (int i = (int)SeedSize.Value - 1; i >= 0; i--)
+                Console.Write(ImageOperations.BitValue(best.seed, i) ? "1" : "0");
+            Console.WriteLine();
+            Console.WriteLine(best.tapValue);
         }
 
         private void button1_Click_3(object sender, EventArgs e)
