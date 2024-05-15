@@ -210,12 +210,12 @@ namespace ImageEncryptCompress
             // encryptButton
             // 
             this.encryptButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.encryptButton.Location = new System.Drawing.Point(980, 516);
+            this.encryptButton.Location = new System.Drawing.Point(979, 485);
             this.encryptButton.Margin = new System.Windows.Forms.Padding(4);
             this.encryptButton.Name = "encryptButton";
-            this.encryptButton.Size = new System.Drawing.Size(96, 51);
+            this.encryptButton.Size = new System.Drawing.Size(110, 82);
             this.encryptButton.TabIndex = 20;
-            this.encryptButton.Text = "Encrypt";
+            this.encryptButton.Text = "Encrypt/Decrypt";
             this.encryptButton.UseVisualStyleBackColor = true;
             this.encryptButton.Click += new System.EventHandler(this.button1_Click_1);
             // 

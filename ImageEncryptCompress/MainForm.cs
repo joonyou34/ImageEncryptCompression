@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -109,6 +110,18 @@ namespace ImageEncryptCompress
             }
 
             ImageOperations.EncryptImage(ref ImageMatrix, binSeed.Length, new BitArray(binSeed), tap);
+
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "bmp files (*.bmp)|*.bmp|All files (*.*)|*.*";
+            saveFileDialog1.RestoreDirectory = true;
+            if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                Conversions.ToBitmap(ImageMatrix).Save(saveFileDialog1.FileName, ImageFormat.Bmp);
+            }
+            else
+            {
+                return;
+            }
 
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
 
@@ -320,6 +333,19 @@ namespace ImageEncryptCompress
             timer.Stop();
             TimeSpan time = timer.Elapsed;
             Console.WriteLine($"Elapsed Time (seconds): {time.TotalSeconds}");
+
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "bmp files (*.bmp)|*.bmp|All files (*.*)|*.*";
+            saveFileDialog1.RestoreDirectory = true;
+            if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                Conversions.ToBitmap(ImageMatrix).Save(saveFileDialog1.FileName, ImageFormat.Bmp);
+            }
+            else
+            {
+                return;
+            }
+
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
         }
     }
