@@ -8,6 +8,9 @@ using System.Collections;
 using static System.Net.Mime.MediaTypeNames;
 using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.CodeDom.Compiler;
 ///Algorithms Project
 ///Intelligent Scissors
 ///
@@ -35,46 +38,47 @@ namespace ImageEncryptCompress
         }
     }
 
-    public struct CompressedPixel
-    {
-        public BitArray color;
-
-        public CompressedPixel(int bits)
-        {
-            color = new BitArray(bits);
-        }
-
-        public CompressedPixel(BitArray initialColor)
-        {
-            color = new BitArray(initialColor);
-        }
-    }
-
     public struct CompressedImage
     {
         public HuffmanTree redTree;
         public HuffmanTree greenTree;
         public HuffmanTree blueTree;
 
-        public CompressedPixel[,] image;
+
+        public BitArray image;
+        public int length, width;
 
         public CompressedImage(int l, int w, HuffmanTree r, HuffmanTree g, HuffmanTree b)
         {
             redTree = r;
             greenTree = g;
             blueTree = b;
-            image = new CompressedPixel[l, w];
+            length = l;
+            width = w;
+            image = null;
         }
 
-        public int getLen()
+        public void SaveImage(BinaryWriter writer)
         {
-            return image.GetLength(0);
+            redTree.SaveTree(writer);
+            greenTree.SaveTree(writer);
+            blueTree.SaveTree(writer);
+
+            writer.Write(length);
+            writer.Write(width);
+
+            byte[] imageAsBytes = Conversions.ToByteArray(image);
+            writer.Write(imageAsBytes, 0, imageAsBytes.Length);
         }
 
-        public int getWidth()
+        public void LoadImage(BinaryReader reader)
         {
-            return image.GetLength(1);
+            byte[] allColors = reader.ReadBytes((int)(reader.BaseStream.Length - reader.BaseStream.Position + 1));
+            image = Conversions.ToBitArray(allColors, 0);
         }
+
+
+
     }
     public struct RGBPixelD
     {
@@ -86,7 +90,7 @@ namespace ImageEncryptCompress
         public int seed;
         public int tapValue;
     }
-  
+
     /// <summary>
     /// Library of static functions that deal with images
     /// </summary>

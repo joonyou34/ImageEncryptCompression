@@ -46,6 +46,8 @@ namespace ImageEncryptCompress
             this.SeedSize = new System.Windows.Forms.NumericUpDown();
             this.compress_button = new System.Windows.Forms.Button();
             this.DecompressButton = new System.Windows.Forms.Button();
+            this.encCompButton = new System.Windows.Forms.Button();
+            this.deEncCompButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.panel1.SuspendLayout();
@@ -208,7 +210,7 @@ namespace ImageEncryptCompress
             // encryptButton
             // 
             this.encryptButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.encryptButton.Location = new System.Drawing.Point(811, 561);
+            this.encryptButton.Location = new System.Drawing.Point(980, 516);
             this.encryptButton.Margin = new System.Windows.Forms.Padding(4);
             this.encryptButton.Name = "encryptButton";
             this.encryptButton.Size = new System.Drawing.Size(96, 51);
@@ -251,7 +253,7 @@ namespace ImageEncryptCompress
             // compress_button
             // 
             this.compress_button.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.compress_button.Location = new System.Drawing.Point(603, 488);
+            this.compress_button.Location = new System.Drawing.Point(558, 497);
             this.compress_button.Margin = new System.Windows.Forms.Padding(4);
             this.compress_button.Name = "compress_button";
             this.compress_button.Size = new System.Drawing.Size(122, 38);
@@ -263,7 +265,7 @@ namespace ImageEncryptCompress
             // DecompressButton
             // 
             this.DecompressButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.DecompressButton.Location = new System.Drawing.Point(603, 557);
+            this.DecompressButton.Location = new System.Drawing.Point(558, 564);
             this.DecompressButton.Margin = new System.Windows.Forms.Padding(4);
             this.DecompressButton.Name = "DecompressButton";
             this.DecompressButton.Size = new System.Drawing.Size(144, 38);
@@ -272,11 +274,37 @@ namespace ImageEncryptCompress
             this.DecompressButton.UseVisualStyleBackColor = true;
             this.DecompressButton.Click += new System.EventHandler(this.DecompressButton_Click);
             // 
+            // encCompButton
+            // 
+            this.encCompButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.encCompButton.Location = new System.Drawing.Point(764, 512);
+            this.encCompButton.Margin = new System.Windows.Forms.Padding(4);
+            this.encCompButton.Name = "encCompButton";
+            this.encCompButton.Size = new System.Drawing.Size(122, 38);
+            this.encCompButton.TabIndex = 25;
+            this.encCompButton.Text = "EncComp";
+            this.encCompButton.UseVisualStyleBackColor = true;
+            this.encCompButton.Click += new System.EventHandler(this.button1_Click_4);
+            // 
+            // deEncCompButton
+            // 
+            this.deEncCompButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.deEncCompButton.Location = new System.Drawing.Point(748, 567);
+            this.deEncCompButton.Margin = new System.Windows.Forms.Padding(4);
+            this.deEncCompButton.Name = "deEncCompButton";
+            this.deEncCompButton.Size = new System.Drawing.Size(148, 38);
+            this.deEncCompButton.TabIndex = 26;
+            this.deEncCompButton.Text = "deEncComp";
+            this.deEncCompButton.UseVisualStyleBackColor = true;
+            this.deEncCompButton.Click += new System.EventHandler(this.deEncCompButton_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1205, 615);
+            this.Controls.Add(this.deEncCompButton);
+            this.Controls.Add(this.encCompButton);
             this.Controls.Add(this.DecompressButton);
             this.Controls.Add(this.compress_button);
             this.Controls.Add(this.SeedSize);
@@ -329,6 +357,8 @@ namespace ImageEncryptCompress
         private System.Windows.Forms.NumericUpDown SeedSize;
         private System.Windows.Forms.Button compress_button;
         private System.Windows.Forms.Button DecompressButton;
+        private System.Windows.Forms.Button encCompButton;
+        private System.Windows.Forms.Button deEncCompButton;
     }
 }
 

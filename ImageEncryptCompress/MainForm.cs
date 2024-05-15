@@ -4,10 +4,14 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace ImageEncryptCompress
 {
@@ -19,8 +23,7 @@ namespace ImageEncryptCompress
         }
 
         RGBPixel[,] ImageMatrix;
-        CompressedImage compressedImageMatrix;
-        BitArray hashSeed = new BitArray(32);
+        
 
         private void btnOpen_Click(object sender, EventArgs e)
         {
@@ -44,8 +47,9 @@ namespace ImageEncryptCompress
         //    ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
         //}
 
-        private void convertToBinary()
+        private BitArray HashSeed()
         {
+            BitArray hashSeed = new BitArray(32);
             const Int64 mod = (int)1e9 + 7;
             Int64 hash_1 = 0, p1 = 1, base_1 = 271;
 
@@ -61,7 +65,7 @@ namespace ImageEncryptCompress
             {
                 hashSeed[i] = ((hash_1 >> i) % 2 != 0);
             }
-
+            return hashSeed;
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -99,15 +103,12 @@ namespace ImageEncryptCompress
                 binSeed[binString.Length-i-1] = (binString[i] == '1' ? true : false);
                 isBinary &= (binString[i] == '1' || binString[i] == '0');
             }
-            if (isBinary)
+            if (!isBinary)
             {
-                ImageOperations.EncryptImage(ref ImageMatrix, binSeed.Length, binSeed, tap);
+                binSeed = HashSeed();
             }
-            else
-            {
-                convertToBinary();
-                ImageOperations.EncryptImage(ref ImageMatrix, 32, hashSeed, tap);
-            }
+
+            ImageOperations.EncryptImage(ref ImageMatrix, binSeed.Length, new BitArray(binSeed), tap);
 
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
 
@@ -121,12 +122,204 @@ namespace ImageEncryptCompress
 
         private void button1_Click_3(object sender, EventArgs e)
         {
-            compressedImageMatrix = ImageCompression.CompressImage(ImageMatrix);
+            CompressedImage compressedImageMatrix = ImageCompression.CompressImage(ImageMatrix);
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Binary files (*.bin)|*.bin|All files (*.*)|*.*",
+                Title = "Save a Binary File",
+                FileName = "CompressedImage.bin"
+            };
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                string path = saveFileDialog.FileName;
+
+                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write))
+                using (BinaryWriter writer = new BinaryWriter(fs))
+                {
+                    writer.Write(1);
+                    writer.Write((byte)7);
+                    writer.Write((byte)0);
+                    writer.Write(0);
+
+                    compressedImageMatrix.SaveImage(writer);
+                }
+
+            }
+            else
+            {
+                return;
+            }
         }
 
         private void DecompressButton_Click(object sender, EventArgs e)
         {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Binary Files (*.bin)|*.bin|All Files (*.*)|*.*",
+                Title = "Open Binary File"
+            };
+
+            CompressedImage compressedImageMatrix;
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                string path = openFileDialog.FileName;
+
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+                using (BinaryReader reader = new BinaryReader(fs))
+                {
+                    int seedLength = reader.ReadInt32();
+                    byte binSeedDiff = reader.ReadByte();
+
+                    byte[] seedAsBytes = reader.ReadBytes(seedLength);
+
+
+                    Conversions.ToBitArray(seedAsBytes, binSeedDiff);
+                    reader.ReadInt32();
+
+                    HuffmanTree r = new HuffmanTree();
+                    HuffmanTree g = new HuffmanTree();
+                    HuffmanTree b = new HuffmanTree();
+
+                    r.LoadTree(reader);
+                    g.LoadTree(reader);
+                    b.LoadTree(reader);
+
+                    int l = reader.ReadInt32();
+                    int w = reader.ReadInt32();
+                    compressedImageMatrix = new CompressedImage(l, w, r, g, b);
+                    compressedImageMatrix.LoadImage(reader);
+                }
+            }
+            else
+            {
+                return;
+            }
+
             ImageMatrix = ImageCompression.DecompressImage(ref compressedImageMatrix);
+            ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
+        }
+
+        private void button1_Click_4(object sender, EventArgs e)
+        {
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
+
+            int tap = ((int)tapAmount.Value);
+
+            string binString = binaryString.Text;
+            bool isBinary = true;
+
+            BitArray binSeed = new BitArray(binString.Length);
+
+            for (int i = 0; i < binString.Length; i++)
+            {
+                binSeed[binString.Length - i - 1] = (binString[i] == '1' ? true : false);
+                isBinary &= (binString[i] == '1' || binString[i] == '0');
+            }
+
+            if (!isBinary)
+            {
+                binSeed = HashSeed();
+            }
+            ImageOperations.EncryptImage(ref ImageMatrix, binSeed.Length,new BitArray(binSeed), tap);
+
+            CompressedImage compressedImageMatrix = ImageCompression.CompressImage(ImageMatrix);
+
+            timer.Stop();
+            TimeSpan time = timer.Elapsed;
+            Console.WriteLine($"Elapsed Time (seconds): {time.TotalSeconds}");
+
+            
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Binary files (*.bin)|*.bin|All files (*.*)|*.*",
+                Title = "Save a Binary File",
+                FileName = "CompressedImage.bin"
+            };
+            byte[] seedAsBytes = Conversions.ToByteArray(binSeed);
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                string path = saveFileDialog.FileName;
+
+                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write))
+                using (BinaryWriter writer = new BinaryWriter(fs))
+                {
+                    writer.Write(seedAsBytes.Length);
+                    writer.Write(Convert.ToByte((8-(binSeed.Length & 7))&7));
+                    writer.Write(seedAsBytes, 0, seedAsBytes.Length);
+                    writer.Write(tap);
+
+                    compressedImageMatrix.SaveImage(writer);
+                }
+
+            }
+            else
+            {
+                return;
+            }
+
+            ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
+        }
+
+        private void deEncCompButton_Click(object sender, EventArgs e)
+        {
+
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Binary Files (*.bin)|*.bin|All Files (*.*)|*.*",
+                Title = "Open Binary File"
+            };
+
+            BitArray binSeed = null;
+            int tap = 0;
+            CompressedImage compressedImageMatrix;
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                string path = openFileDialog.FileName;
+
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+                using (BinaryReader reader = new BinaryReader(fs))
+                {
+                    int seedLength = reader.ReadInt32();
+                    byte binSeedDiff = reader.ReadByte();
+
+                    byte[] seedAsBytes = reader.ReadBytes(seedLength);
+
+
+                    binSeed = Conversions.ToBitArray(seedAsBytes, binSeedDiff);
+                    tap = reader.ReadInt32();
+
+                    HuffmanTree r = new HuffmanTree();
+                    HuffmanTree g = new HuffmanTree();
+                    HuffmanTree b = new HuffmanTree();
+
+                    r.LoadTree(reader);
+                    g.LoadTree(reader);
+                    b.LoadTree(reader);
+
+                    int l = reader.ReadInt32();
+                    int w = reader.ReadInt32();
+                    compressedImageMatrix = new CompressedImage(l, w, r, g, b);
+                    compressedImageMatrix.LoadImage(reader);
+                }
+            }
+            else
+            {
+                return;
+            }
+
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
+
+            ImageMatrix = ImageCompression.DecompressImage(ref compressedImageMatrix);
+            ImageOperations.EncryptImage(ref ImageMatrix, binSeed.Length, new BitArray(binSeed), tap);
+
+
+
+            timer.Stop();
+            TimeSpan time = timer.Elapsed;
+            Console.WriteLine($"Elapsed Time (seconds): {time.TotalSeconds}");
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
         }
     }

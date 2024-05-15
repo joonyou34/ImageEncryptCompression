@@ -4,6 +4,9 @@ using System.Windows.Forms;
 using System.Collections.Specialized;
 using System.Collections;
 using System.Runtime.InteropServices;
+using System.IO;
+using System.Net;
+using System.Linq;
 
 namespace ImageEncryptCompress
 {
@@ -21,16 +24,57 @@ namespace ImageEncryptCompress
         }
     }
 
+    public static class Conversions
+    {
+        public static byte[] ToByteArray(BitArray b)
+        {
+            byte[] ret = new byte[(b.Length + 7) >> 3];
+            
 
+            for (int i = 0; i < ret.Length; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if ((i << 3) + j >= b.Length) break;
 
+                    ret[i] |= Convert.ToByte(Convert.ToInt32(b[(i << 3) + j]) << j);
+                }
+            }
+
+            return ret;
+        }
+
+        public static BitArray ToBitArray(byte[] b, int diff)
+        {
+            BitArray ret = new BitArray((b.Length<<3) - diff);
+            for(int i = 0; i < b.Length; i++)
+            {
+                for(int j = 0; j < 8; j++)
+                {
+                    if ((i << 3) + j >= ret.Length) break;
+
+                    ret[(i << 3) + j] = ImageOperations.BitValue(b[i], j);
+                }
+            }
+            return ret;
+        }
+
+        public static BitArray ToBitArray(List<bool> b)
+        {
+            BitArray ret = new BitArray(b.Count);
+            for (int i = 0; i < ret.Length; i++)
+                ret[i] = b[i];
+            return ret;
+        }
+    }
     public class MinHeap
     {
-        private readonly HuffmanNode[] _elements;
+        private readonly HeapNode[] _elements;
         public int _size;
 
         public MinHeap(int size)
         {
-            _elements = new HuffmanNode[size];
+            _elements = new HeapNode[size];
         }
 
         private int GetLeftChildIndex(int elementIndex) => 2 * elementIndex + 1;
@@ -41,13 +85,13 @@ namespace ImageEncryptCompress
         private bool HasRightChild(int elementIndex) => GetRightChildIndex(elementIndex) < _size;
         private bool IsRoot(int elementIndex) => elementIndex == 0;
 
-        private HuffmanNode GetLeftChild(int elementIndex) => _elements[GetLeftChildIndex(elementIndex)];
-        private HuffmanNode GetRightChild(int elementIndex) => _elements[GetRightChildIndex(elementIndex)];
-        private HuffmanNode GetParent(int elementIndex) => _elements[GetParentIndex(elementIndex)];
+        private HeapNode GetLeftChild(int elementIndex) => _elements[GetLeftChildIndex(elementIndex)];
+        private HeapNode GetRightChild(int elementIndex) => _elements[GetRightChildIndex(elementIndex)];
+        private HeapNode GetParent(int elementIndex) => _elements[GetParentIndex(elementIndex)];
 
         private void Swap(int firstIndex, int secondIndex)
         {
-            HuffmanNode temp = _elements[firstIndex];
+            HeapNode temp = _elements[firstIndex];
             _elements[firstIndex] = _elements[secondIndex];
             _elements[secondIndex] = temp;
         }
@@ -57,7 +101,7 @@ namespace ImageEncryptCompress
             return _size == 0;
         }
 
-        public HuffmanNode Peek()
+        public HeapNode Peek()
         {
             if (_size == 0)
                 throw new IndexOutOfRangeException();
@@ -65,12 +109,12 @@ namespace ImageEncryptCompress
             return _elements[0];
         }
 
-        public HuffmanNode Pop()
+        public HeapNode Pop()
         {
             if (_size == 0)
                 throw new IndexOutOfRangeException();
 
-            HuffmanNode result = _elements[0];
+            HeapNode result = _elements[0];
             _elements[0] = _elements[_size - 1];
             _size--;
 
@@ -79,7 +123,7 @@ namespace ImageEncryptCompress
             return result;
         }
 
-        public void Add(HuffmanNode element)
+        public void Add(HeapNode element)
         {
             if (_size == _elements.Length)
                 throw new IndexOutOfRangeException();
@@ -122,17 +166,27 @@ namespace ImageEncryptCompress
             }
         }
     }
+
+
+    public class HeapNode
+    {
+        public HeapNode(HuffmanNode hufNode, int freq)
+        {
+            node = hufNode;
+            this.freq = freq;
+        }
+
+        public int freq;
+        public HuffmanNode node;
+    }
     public class HuffmanNode
     {
-        public HuffmanNode(byte col, int fr)
+        public HuffmanNode(byte col)
         {
             color = col;
-            freq = fr;
         }
         public HuffmanNode left { get; set; }
         public HuffmanNode right { get; set; }
-
-        public int freq;
 
         public byte color;
     }
@@ -140,35 +194,33 @@ namespace ImageEncryptCompress
     public class HuffmanTree
     {
         public HuffmanNode root { get; set; }
-        public Dictionary<byte, BitArray> encode = new Dictionary<byte, BitArray>();
         public void build(Dictionary<byte, int> FreqTable)
         {
             MinHeap pq = new MinHeap(FreqTable.Count);
 
             foreach (var row in FreqTable)
             {
-                HuffmanNode node = new HuffmanNode(row.Key, row.Value);
+                HeapNode node = new HeapNode(new HuffmanNode(row.Key), row.Value);
                 pq.Add(node);
             }
 
             while (pq._size > 1)
             {
-                HuffmanNode left = pq.Peek();
-                pq.Pop();
-                HuffmanNode right = pq.Peek();
-                pq.Pop();
+                HeapNode left = pq.Pop();
+                HeapNode right = pq.Pop();
 
-                HuffmanNode internal_node = new HuffmanNode(0, left.freq + right.freq);
-                internal_node.left = left;
-                internal_node.right = right;
+                HeapNode internal_node = new HeapNode(new HuffmanNode(0), left.freq + right.freq);
+                
+                internal_node.node.left = left.node;
+                internal_node.node.right = right.node;
 
                 pq.Add(internal_node);
             }
 
-            root = pq.Peek();
+            root = pq.Peek().node;
         }
 
-        public void traverse_set(HuffmanNode node, BitArray byt, int idx = 0)
+        public void traverse_set(Dictionary<byte, BitArray> encode, HuffmanNode node, BitArray byt, int idx = 0)
         {
             // root is doz
             if (node == null) return;
@@ -176,17 +228,66 @@ namespace ImageEncryptCompress
             if (node.left == null && node.right == null)
             {
                 // leaf dozer
-
                 encode[node.color] = new BitArray(idx);
                 for (int i = 0; i < idx; i++)
                     encode[node.color][i] = byt[i];
                 return;
             }
 
-            traverse_set(node.left, byt, idx + 1);
+            traverse_set(encode, node.left, byt, idx + 1);
             byt[idx] = true;
-            traverse_set(node.right, byt, idx + 1);
+            traverse_set(encode, node.right, byt, idx + 1);
             byt[idx] = false;
+        }
+
+        private void SaveTreeHelper(BinaryWriter writer, HuffmanNode node)
+        {
+            if (node == null)
+            {
+                return;
+            }
+
+            byte dataByte = 0;
+
+            dataByte |= Convert.ToByte(node.left != null);
+            dataByte |= Convert.ToByte(Convert.ToByte(node.right != null) << 1);
+            writer.Write(dataByte);
+
+            if(node.left == null && node.right == null)
+                writer.Write(node.color);
+
+            SaveTreeHelper(writer, node.left);
+            SaveTreeHelper(writer, node.right);
+        }
+
+        public void SaveTree(BinaryWriter writer)
+        {
+            SaveTreeHelper(writer, root);
+        }
+
+        private HuffmanNode LoadTreeHelper(BinaryReader reader)
+        {
+
+            byte dataByte = reader.ReadByte();
+            bool left = ImageOperations.BitValue(dataByte, 0);
+            bool right = ImageOperations.BitValue(dataByte, 1);
+
+            byte color = (left || right) ? (byte)0 : reader.ReadByte();
+
+            HuffmanNode node = new HuffmanNode(color);
+
+            if(left)
+                node.left = LoadTreeHelper(reader);
+            
+            if(right)
+                node.right = LoadTreeHelper(reader);
+            
+            return node;
+        }
+
+        public void LoadTree(BinaryReader reader)
+        {
+            root = LoadTreeHelper(reader);
         }
     }
     public static class ImageCompression
@@ -261,48 +362,55 @@ namespace ImageEncryptCompress
 
             return freq_green;
         }
-        public static void BuildHuffman_red(RGBPixel[,] image, ref HuffmanTree huffmanTree_red)
+        public static void BuildHuffman_red(Dictionary<byte, BitArray> encode, RGBPixel[,] image, ref HuffmanTree huffmanTree_red)
         {
             Dictionary<byte, int> freqred = Freq_RED(image);
-            BitArray b = new BitArray(32);
+            BitArray b = new BitArray(64);
             huffmanTree_red.build(freqred);
-            huffmanTree_red.traverse_set(huffmanTree_red.root, b, 0);
+            huffmanTree_red.traverse_set(encode, huffmanTree_red.root, b, 0);
 
         }
 
-        public static void BuildHuffman_Blue(RGBPixel[,] image, ref HuffmanTree huffmanTree)
+        public static void BuildHuffman_Blue(Dictionary<byte, BitArray> encode, RGBPixel[,] image, ref HuffmanTree huffmanTree)
         {
             Dictionary<byte, int> freqblue = Freq_BLUE(image);
-            BitArray b = new BitArray(32);
+            BitArray b = new BitArray(64);
 
             huffmanTree.build(freqblue);
-            huffmanTree.traverse_set(huffmanTree.root, b, 0);
+            huffmanTree.traverse_set(encode, huffmanTree.root, b, 0);
 
         }
 
-        public static void BuildHuffman_Green(RGBPixel[,] image, ref HuffmanTree huffmanTree)
+        public static void BuildHuffman_Green(Dictionary<byte, BitArray> encode, RGBPixel[,] image, ref HuffmanTree huffmanTree)
         {
             Dictionary<byte, int> freqgreen = Freq_GREEN(image);
 
-            BitArray b = new BitArray(32);
+            BitArray b = new BitArray(64);
             huffmanTree.build(freqgreen);
-            huffmanTree.traverse_set(huffmanTree.root, b, 0);
+            huffmanTree.traverse_set(encode, huffmanTree.root, b, 0);
 
         }
         public static CompressedImage CompressImage(RGBPixel[,] image)
         {
             int height = ImageOperations.GetHeight(image);
             int width = ImageOperations.GetWidth(image);
-            
+
+            Dictionary<byte, BitArray> encodeR = new Dictionary<byte, BitArray>();
+            Dictionary<byte, BitArray> encodeG = new Dictionary<byte, BitArray>();
+            Dictionary<byte, BitArray> encodeB = new Dictionary<byte, BitArray>();
+
+
             HuffmanTree red_h = new HuffmanTree();
             HuffmanTree green_h = new HuffmanTree();
             HuffmanTree blue_h = new HuffmanTree();
 
-            BuildHuffman_red(image, ref red_h);
-            BuildHuffman_Green(image, ref green_h);
-            BuildHuffman_Blue(image, ref blue_h);
+            BuildHuffman_red(encodeR, image, ref red_h);
+            BuildHuffman_Green(encodeG, image, ref green_h);
+            BuildHuffman_Blue(encodeB, image, ref blue_h);
 
             CompressedImage compressedImage = new CompressedImage(height, width, red_h, green_h, blue_h);
+
+            List<bool> imageBuilder = new List<bool>(height*width);
             for (int i = 0; i < height; i++)
             {
                 for (int j = 0; j < width; j++)
@@ -311,95 +419,62 @@ namespace ImageEncryptCompress
                     byte green = image[i, j].green;
                     byte blue = image[i, j].blue;
 
-                    BitArray redBits = red_h.encode[red];
-                    BitArray greenBits = green_h.encode[green];
-                    BitArray blueBits = blue_h.encode[blue];
+                    BitArray redBits = encodeR[red];
+                    BitArray greenBits = encodeG[green];
+                    BitArray blueBits = encodeB[blue];
 
-                    int sz = redBits.Length + greenBits.Length + blueBits.Length;
-                    compressedImage.image[i, j] = new CompressedPixel(sz);
-                    for(int k = 0; k < redBits.Length; k++)
-                        compressedImage.image[i, j].color[k] = redBits[k];
+                    for (int k = 0; k < redBits.Length; k++)
+                        imageBuilder.Add(redBits[k]);
 
-                    sz = redBits.Length;
-                    for (int k = 0; k < greenBits.Length ; k++)
-                        compressedImage.image[i, j].color[sz+k] = greenBits[k];
+                    for (int k = 0; k < greenBits.Length; k++)
+                        imageBuilder.Add(greenBits[k]);
 
-                    sz = redBits.Length + greenBits.Length;
                     for (int k = 0; k < blueBits.Length; k++)
-                        compressedImage.image[i, j].color[sz+k] = blueBits[k];
+                        imageBuilder.Add(blueBits[k]);
                 }
             }
+
+            compressedImage.image = Conversions.ToBitArray(imageBuilder);
 
             return compressedImage;
         }
 
-        public static RGBPixel DecompressPixel(ref CompressedPixel pixel, HuffmanTree r, HuffmanTree g, HuffmanTree b)
-        {
-            RGBPixel ret = new RGBPixel();
-            int idx = 0;
-            HuffmanNode curr = r.root;
-            while (curr.left != null || curr.right != null)
-            {
-                if (pixel.color[idx] == true)
-                {
-                    curr = curr.right;
-                }
-                else
-                {
-                    curr = curr.left;
-                }
-                idx++;
-            }
-            ret.red = curr.color;
-
-            curr = g.root;
-            while (curr.left != null || curr.right != null)
-            {
-                if (pixel.color[idx] == true)
-                {
-                    curr = curr.right;
-                }
-                else
-                {
-                    curr = curr.left;
-                }
-                idx++;
-            }
-
-
-            ret.green = curr.color;
-
-            curr = b.root;
-            while (curr.left != null || curr.right != null)
-            {
-                if (pixel.color[idx] == true)
-                {
-                    curr = curr.right;
-                }
-                else
-                {
-                    curr = curr.left;
-                }
-                idx++;
-            }
-
-
-
-            ret.blue = curr.color;
-            return ret;
-        }
 
         public static RGBPixel[,] DecompressImage(ref CompressedImage image)
         {
-            int l = image.getLen();
-            int w = image.getWidth();
-            RGBPixel[ , ] ret = new RGBPixel[l, w];
-            for(int i = 0; i < l; i++)
-            {
-                for(int j = 0; j < w; j++)
-                {
 
-                    ret[i, j] = DecompressPixel(ref image.image[i, j], image.redTree, image.greenTree, image.blueTree);
+            RGBPixel[ , ] ret = new RGBPixel[image.length, image.width];
+
+
+            int idx = 0;
+            for(int i = 0; i < image.length; i++)
+            {
+                for(int j = 0; j < image.width; j++)
+                {
+                    HuffmanNode it = image.redTree.root;
+
+                    while(it.left != null && it.right != null)
+                    {
+                        it = (image.image[idx]) ? it.right : it.left;
+                        idx++;
+                    }
+                    ret[i, j].red = it.color;
+
+                    it = image.greenTree.root;
+                    while (it.left != null && it.right != null)
+                    {
+                        it = (image.image[idx]) ? it.right : it.left;
+                        idx++;
+                    }
+                    ret[i, j].green = it.color;
+
+                    it = image.blueTree.root;
+                    while (it.left != null && it.right != null)
+                    {
+                        it = (image.image[idx]) ? it.right : it.left;
+                        idx++;
+                    }
+                    ret[i, j].blue = it.color;
                 }
             }
             return ret;
